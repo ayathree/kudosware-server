@@ -24,6 +24,7 @@ async function run() {
     // Connect the client to the server
     await client.connect();
     const userCollection = client.db('jobDB').collection('users');
+    const resumeCollection = client.db('jobDB').collection('resume');
 
     app.get('/users', async (req, res) => {
       const result = await userCollection.find().toArray();
@@ -51,6 +52,35 @@ async function run() {
       const result = await userCollection.find(query).toArray();
       res.send(result);
     })
+
+    app.get('/resume', async (req, res) => {
+      const result = await resumeCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post('/resume', async (req, res) => {
+      try {
+        const user = req.body;
+        // don't let a user insert into the db if it already exists
+        const query = { email: user.email };
+        const existingUser = await resumeCollection.findOne(query);
+        if (existingUser) {
+          return res.send({ message: 'user already exists', insertedId: null });
+        }
+        const result = await resumeCollection.insertOne(user);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: 'Error creating user', error: error.message });
+      }
+    });
+
+    app.get('/profileResume/:email', async(req,res)=>{
+      const query = {email: req.params.email}
+      const result = await resumeCollection.find(query).toArray();
+      res.send(result);
+    })
+
+
 
     // Ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
